@@ -232,7 +232,7 @@ class ResetIn(Input):
 
 class GenerationIn(Input):
     alternatives: int = Field(default=3, ge=1, le=8)
-    time_limit: int = Field(default=15, ge=1, le=120)
+    time_limit: int = Field(default=30, ge=1, le=120)
     random_seed: int = Field(default=42, ge=0, le=2147483647)
     optimize: bool = True
     respect_locked: bool = True
