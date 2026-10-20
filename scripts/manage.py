@@ -10,7 +10,7 @@ COMMANDS = {
     "start": [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0"],
     "worker": [sys.executable, "-m", "celery", "-A", "app.jobs.celery", "worker", "--loglevel=info", "--pool=solo"],
     "test": [sys.executable, "-m", "pytest", "-q"],
-    "test:watch": [sys.executable, "-m", "pytest", "-x", "--lf"],
+    "test:watch": [sys.executable, "-m", "app.watch_tests"],
     "lint": [sys.executable, "-m", "ruff", "check", "."],
     "format": [sys.executable, "-m", "black", "."],
     "typecheck": [sys.executable, "-m", "mypy", "app"],
