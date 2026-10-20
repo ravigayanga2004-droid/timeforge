@@ -10,7 +10,12 @@ from sqlalchemy.orm import Session
 from app import models as m
 from app import schemas as s
 from app.db import get_db
-from app.security import MANAGERS, create_audit_log, require_auth, require_department_access
+from app.security import (
+    MANAGERS,
+    create_audit_log,
+    require_auth,
+    require_department_access,
+)
 
 REGISTRY: dict[str, tuple[Any, Any]] = {
     "universities": (m.University, s.UniversityIn),
@@ -252,6 +257,88 @@ def listing(
 ):
     model, _ = definition(entity)
     query = scoped(select(model), model, user)
+    if user.role not in MANAGERS:
+        published = select(m.Timetable.published_version_id).where(
+            m.Timetable.department_id == user.department_id,
+            m.Timetable.published_version_id.is_not(None),
+            m.Timetable.status != "ARCHIVED",
+        )
+        meetings = select(m.ScheduledSession).where(m.ScheduledSession.version_id.in_(published))
+        if user.role == "lecturer":
+            meetings = meetings.where(
+                m.ScheduledSession.lecturer_id.in_(
+                    select(m.Lecturer.id).where(m.Lecturer.user_id == user.id)
+                )
+            )
+        elif user.role == "student":
+            meetings = meetings.where(
+                m.ScheduledSession.section_id.in_(
+                    select(m.CourseEnrollmentGroup.section_id).where(
+                        m.CourseEnrollmentGroup.group_id == user.group_id
+                    )
+                )
+            )
+        selected = meetings.subquery()
+        section_ids = select(selected.c.section_id)
+        room_ids = select(selected.c.room_id)
+        if entity == "courses":
+            query = query.where(
+                m.Course.id.in_(
+                    select(m.CourseSection.course_id).where(m.CourseSection.id.in_(section_ids))
+                )
+            )
+        elif entity == "sections":
+            query = query.where(m.CourseSection.id.in_(section_ids))
+        elif entity == "rooms":
+            query = query.where(m.Room.id.in_(room_ids))
+        elif entity == "lecturers":
+            query = (
+                query.where(m.Lecturer.user_id == user.id)
+                if user.role == "lecturer"
+                else query.where(m.Lecturer.id.in_(select(selected.c.lecturer_id)))
+            )
+        elif entity == "student-groups":
+            query = (
+                query.where(m.StudentGroup.id == user.group_id)
+                if user.role == "student"
+                else query.where(
+                    m.StudentGroup.id.in_(
+                        select(m.CourseEnrollmentGroup.group_id).where(
+                            m.CourseEnrollmentGroup.section_id.in_(section_ids)
+                        )
+                    )
+                )
+            )
+        elif entity == "buildings":
+            query = query.where(
+                m.Building.id.in_(select(m.Room.building_id).where(m.Room.id.in_(room_ids)))
+            )
+        elif entity == "room-features":
+            query = query.where(
+                m.RoomFeature.id.in_(
+                    select(m.RoomFeatureLink.feature_id).where(
+                        m.RoomFeatureLink.room_id.in_(room_ids)
+                    )
+                )
+            )
+        elif entity == "universities":
+            query = query.where(
+                m.University.id.in_(
+                    select(m.Department.university_id).where(m.Department.id == user.department_id)
+                )
+            )
+        elif entity == "availability" and user.role != "lecturer":
+            query = query.where(m.Availability.id == -1)
+        elif entity == "constraints":
+            raise HTTPException(403, "Constraint configuration is restricted to coordinators")
+        elif entity == "terms" and user.role != "lecturer":
+            query = query.where(
+                m.AcademicTerm.id.in_(
+                    select(m.Timetable.term_id).where(
+                        m.Timetable.published_version_id.in_(published)
+                    )
+                )
+            )
     if entity == "departments" and user.role != "admin":
         query = query.where(m.Department.id == user.department_id)
     for key, value in [("department_id", department_id), ("term_id", term_id)]:
@@ -272,8 +359,14 @@ def listing(
     rows = db.scalars(
         query.order_by(order.desc() if sort.startswith("-") else order).offset(offset).limit(limit)
     )
+    items = [enrich(db, entity, row) for row in rows]
+    if user.role not in MANAGERS and entity == "lecturers":
+        for item in items:
+            if item.get("user_id") != user.id:
+                for key in ["email", "employee_number", "user_id"]:
+                    item.pop(key, None)
     return {
-        "items": [enrich(db, entity, row) for row in rows],
+        "items": items,
         "total": total,
         "offset": offset,
         "limit": limit,
@@ -282,7 +375,10 @@ def listing(
 
 @router.post("/{entity}", status_code=201)
 def create(
-    entity: str, data: dict, user: m.User = Depends(require_auth), db: Session = Depends(get_db)
+    entity: str,
+    data: dict,
+    user: m.User = Depends(require_auth),
+    db: Session = Depends(get_db),
 ):
     return save_record(db, entity, data, user)
 
@@ -304,7 +400,10 @@ def update(
 
 @router.delete("/{entity}/{record_id}")
 def remove(
-    entity: str, record_id: int, user: m.User = Depends(require_auth), db: Session = Depends(get_db)
+    entity: str,
+    record_id: int,
+    user: m.User = Depends(require_auth),
+    db: Session = Depends(get_db),
 ):
     can_write(entity, user)
     model, _ = definition(entity)

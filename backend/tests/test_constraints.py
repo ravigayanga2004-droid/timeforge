@@ -54,7 +54,11 @@ def problem():
         d * 3
         + i
         + 1: m.TimeSlot(
-            id=d * 3 + i + 1, day=d, start=(9 + i) * 60, end=(10 + i) * 60, is_active=True
+            id=d * 3 + i + 1,
+            day=d,
+            start=(9 + i) * 60,
+            end=(10 + i) * 60,
+            is_active=True,
         )
         for d in range(2)
         for i in range(3)
@@ -168,6 +172,17 @@ def test_solver_preserves_locked_sessions():
     for result in Scheduler(p, GenerationIn(alternatives=3, time_limit=3)).solve():
         a = result["sessions"][0]
         assert (a.day, a.start, a.room_id, a.is_locked) == (0, 540, 1, True)
+
+
+def test_manually_reordered_locked_session_labels_are_preserved():
+    p = problem()
+    p.sections[1].sessions_per_week = 2
+    first = assignments()[0].model_copy(update={"day": 1, "is_locked": True})
+    second = first.model_copy(update={"day": 0, "session_number": 2})
+    p.locks = [first, second]
+    result = Scheduler(p, GenerationIn(alternatives=1, time_limit=3)).solve()[0]
+    assert not validate_solution(p, result["sessions"])
+    assert result["sessions"][0].day == 1 and result["sessions"][1].day == 0
 
 
 def test_infeasible_capacity_is_explained():
