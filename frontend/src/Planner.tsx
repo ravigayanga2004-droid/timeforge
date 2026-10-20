@@ -29,7 +29,7 @@ import type {
 } from "./api";
 import { Badge, Empty, Heading, Loading, Modal, Notice } from "./components";
 import { label } from "./DataPage";
-import {calendarLanes} from './calendar-layout';
+import { calendarLanes } from "./calendar-layout";
 
 const sessionKey = (a: Assignment) => `${a.section_id}:${a.session_number}`;
 export default function Planner({ user }: { user: User }) {
@@ -878,7 +878,7 @@ function CalendarEditor({
             filterId,
           ))),
   );
-  const lanes=calendarLanes(filtered);
+  const lanes = calendarLanes(filtered);
   const violations = preview?.violations ?? version.violations ?? [];
   const hard = violations.filter((v) => v.severity === "hard");
   const soft = violations.filter((v) => v.severity === "soft");
@@ -1182,9 +1182,9 @@ function CalendarEditor({
                         style={{
                           top: a.start - start + 2,
                           minHeight: Math.max(42, a.end - a.start - 4),
-                          left:`calc(${100*lanes[sessionKey(a)].lane/lanes[sessionKey(a)].count}% + 4px)`,
-                          width:`calc(${100/lanes[sessionKey(a)].count}% - 8px)`,
-                          right:'auto',
+                          left: `calc(${(100 * lanes[sessionKey(a)].lane) / lanes[sessionKey(a)].count}% + 4px)`,
+                          width: `calc(${100 / lanes[sessionKey(a)].count}% - 8px)`,
+                          right: "auto",
                         }}
                         key={sessionKey(a)}
                         draggable={editable && !a.is_locked}

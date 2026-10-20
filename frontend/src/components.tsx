@@ -5,7 +5,7 @@ import { title } from "./api";
 export function Badge({ value }: { value: string }) {
   return (
     <span className={`badge ${value.toLowerCase().replaceAll("_", "-")}`}>
-      {title(value)}
+      {title(value.toLowerCase())}
     </span>
   );
 }

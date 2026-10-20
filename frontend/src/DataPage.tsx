@@ -7,6 +7,7 @@ import type { Page, Row, Schema, SchemaField, SchemaMap } from "./api";
 import { Badge, Empty, Heading, Loading, Modal, Notice } from "./components";
 
 const references: Record<string, string> = {
+  university_id: "universities",
   department_id: "departments",
   academic_year_id: "academic-years",
   building_id: "buildings",
