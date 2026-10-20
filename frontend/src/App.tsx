@@ -123,7 +123,11 @@ export default function App() {
           {
             group: "ADMINISTRATION",
             items: [
-              { id: "data/universities", label: "Universities", icon: GraduationCap },
+              {
+                id: "data/universities",
+                label: "Universities",
+                icon: GraduationCap,
+              },
               { id: "users", label: "Users & access", icon: ShieldCheck },
               { id: "data/departments", label: "Departments", icon: Layers3 },
               {
