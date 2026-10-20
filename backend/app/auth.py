@@ -26,7 +26,15 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 def public_user(user: User):
     return {
         k: getattr(user, k)
-        for k in ["id", "name", "email", "role", "department_id", "group_id", "is_active"]
+        for k in [
+            "id",
+            "name",
+            "email",
+            "role",
+            "department_id",
+            "group_id",
+            "is_active",
+        ]
     }
 
 
@@ -71,7 +79,10 @@ def login(data: LoginIn, request: Request, response: Response, db: Session = Dep
     ip_attempt.failures = 0
     token, csrf = new_session(db, user, settings().session_hours)
     user.last_login_at = utcnow()
-    for name, value, http_only in [("tf_session", token, True), ("tf_csrf", csrf, False)]:
+    for name, value, http_only in [
+        ("tf_session", token, True),
+        ("tf_csrf", csrf, False),
+    ]:
         response.set_cookie(
             name,
             value,

@@ -63,7 +63,8 @@ def reference_export(
     )
     if result["total"] > 500:
         raise HTTPException(
-            422, "This export exceeds 500 records; use the paginated data API for bulk extraction"
+            422,
+            "This export exceeds 500 records; use the paginated data API for bulk extraction",
         )
     fields = list(schema.model_fields)
     create_audit_log(db, user, "export", "collection", entity, {"count": len(result["items"])})
@@ -152,7 +153,8 @@ async def import_csv(
     if not dry_run and not errors:
         db.add(
             m.Notification(
-                user_id=user.id, message=f"Import completed: {len(rows)} {entity} records."
+                user_id=user.id,
+                message=f"Import completed: {len(rows)} {entity} records.",
             )
         )
     elif errors:

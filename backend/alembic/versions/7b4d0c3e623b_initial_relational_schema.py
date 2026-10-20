@@ -119,7 +119,10 @@ def upgrade():
         sa.PrimaryKeyConstraint("id", name=op.f("pk_academic_terms")),
     )
     op.create_index(
-        op.f("ix_academic_terms_department_id"), "academic_terms", ["department_id"], unique=False
+        op.f("ix_academic_terms_department_id"),
+        "academic_terms",
+        ["department_id"],
+        unique=False,
     )
     op.create_table(
         "courses",
@@ -134,7 +137,9 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["department_id"], ["departments.id"], name=op.f("fk_courses_department_id_departments")
+            ["department_id"],
+            ["departments.id"],
+            name=op.f("fk_courses_department_id_departments"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_courses")),
         sa.UniqueConstraint("code", name=op.f("uq_courses_code")),
@@ -167,7 +172,10 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["role_id"], ["roles.id"], name=op.f("fk_permissions_role_id_roles"), ondelete="CASCADE"
+            ["role_id"],
+            ["roles.id"],
+            name=op.f("fk_permissions_role_id_roles"),
+            ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_permissions")),
         sa.UniqueConstraint("role_id", "code", name=op.f("uq_permissions_role_id")),
@@ -187,10 +195,14 @@ def upgrade():
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.CheckConstraint("capacity > 0", name=op.f("ck_rooms_capacity")),
         sa.ForeignKeyConstraint(
-            ["building_id"], ["buildings.id"], name=op.f("fk_rooms_building_id_buildings")
+            ["building_id"],
+            ["buildings.id"],
+            name=op.f("fk_rooms_building_id_buildings"),
         ),
         sa.ForeignKeyConstraint(
-            ["department_id"], ["departments.id"], name=op.f("fk_rooms_department_id_departments")
+            ["department_id"],
+            ["departments.id"],
+            name=op.f("fk_rooms_department_id_departments"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_rooms")),
         sa.UniqueConstraint("code", name=op.f("uq_rooms_code")),
@@ -218,7 +230,10 @@ def upgrade():
         sa.UniqueConstraint("code", name=op.f("uq_student_groups_code")),
     )
     op.create_index(
-        op.f("ix_student_groups_department_id"), "student_groups", ["department_id"], unique=False
+        op.f("ix_student_groups_department_id"),
+        "student_groups",
+        ["department_id"],
+        unique=False,
     )
     op.create_table(
         "course_requirements",
@@ -271,10 +286,14 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["department_id"], ["departments.id"], name=op.f("fk_users_department_id_departments")
+            ["department_id"],
+            ["departments.id"],
+            name=op.f("fk_users_department_id_departments"),
         ),
         sa.ForeignKeyConstraint(
-            ["group_id"], ["student_groups.id"], name=op.f("fk_users_group_id_student_groups")
+            ["group_id"],
+            ["student_groups.id"],
+            name=op.f("fk_users_group_id_student_groups"),
         ),
         sa.ForeignKeyConstraint(["role"], ["roles.name"], name=op.f("fk_users_role_roles")),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_users")),
@@ -321,7 +340,10 @@ def upgrade():
         sa.UniqueConstraint("token_hash", name=op.f("uq_auth_sessions_token_hash")),
     )
     op.create_index(
-        op.f("ix_auth_sessions_expires_at"), "auth_sessions", ["expires_at"], unique=False
+        op.f("ix_auth_sessions_expires_at"),
+        "auth_sessions",
+        ["expires_at"],
+        unique=False,
     )
     op.create_index(op.f("ix_auth_sessions_user_id"), "auth_sessions", ["user_id"], unique=False)
     op.create_table(
@@ -344,7 +366,9 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["created_by"], ["users.id"], name=op.f("fk_constraint_definitions_created_by_users")
+            ["created_by"],
+            ["users.id"],
+            name=op.f("fk_constraint_definitions_created_by_users"),
         ),
         sa.ForeignKeyConstraint(
             ["department_id"],
@@ -358,7 +382,10 @@ def upgrade():
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_constraint_definitions")),
         sa.UniqueConstraint(
-            "term_id", "department_id", "code", name=op.f("uq_constraint_definitions_term_id")
+            "term_id",
+            "department_id",
+            "code",
+            name=op.f("uq_constraint_definitions_term_id"),
         ),
     )
     op.create_index(
@@ -468,12 +495,17 @@ def upgrade():
             use_alter=True,
         ),
         sa.ForeignKeyConstraint(
-            ["term_id"], ["academic_terms.id"], name=op.f("fk_timetables_term_id_academic_terms")
+            ["term_id"],
+            ["academic_terms.id"],
+            name=op.f("fk_timetables_term_id_academic_terms"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_timetables")),
     )
     op.create_index(
-        op.f("ix_timetables_department_id"), "timetables", ["department_id"], unique=False
+        op.f("ix_timetables_department_id"),
+        "timetables",
+        ["department_id"],
+        unique=False,
     )
     op.create_index(op.f("ix_timetables_status"), "timetables", ["status"], unique=False)
     op.create_index(op.f("ix_timetables_term_id"), "timetables", ["term_id"], unique=False)
@@ -510,7 +542,9 @@ def upgrade():
             name=op.f("ck_course_sections_requirements"),
         ),
         sa.ForeignKeyConstraint(
-            ["course_id"], ["courses.id"], name=op.f("fk_course_sections_course_id_courses")
+            ["course_id"],
+            ["courses.id"],
+            name=op.f("fk_course_sections_course_id_courses"),
         ),
         sa.ForeignKeyConstraint(
             ["department_id"],
@@ -518,7 +552,9 @@ def upgrade():
             name=op.f("fk_course_sections_department_id_departments"),
         ),
         sa.ForeignKeyConstraint(
-            ["lecturer_id"], ["lecturers.id"], name=op.f("fk_course_sections_lecturer_id_lecturers")
+            ["lecturer_id"],
+            ["lecturers.id"],
+            name=op.f("fk_course_sections_lecturer_id_lecturers"),
         ),
         sa.ForeignKeyConstraint(
             ["term_id"],
@@ -529,10 +565,16 @@ def upgrade():
         sa.UniqueConstraint("code", name=op.f("uq_course_sections_code")),
     )
     op.create_index(
-        op.f("ix_course_sections_course_id"), "course_sections", ["course_id"], unique=False
+        op.f("ix_course_sections_course_id"),
+        "course_sections",
+        ["course_id"],
+        unique=False,
     )
     op.create_index(
-        op.f("ix_course_sections_department_id"), "course_sections", ["department_id"], unique=False
+        op.f("ix_course_sections_department_id"),
+        "course_sections",
+        ["department_id"],
+        unique=False,
     )
     op.create_index(
         op.f("ix_course_sections_term_id"), "course_sections", ["term_id"], unique=False
@@ -557,7 +599,9 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["created_by"], ["users.id"], name=op.f("fk_generation_jobs_created_by_users")
+            ["created_by"],
+            ["users.id"],
+            name=op.f("fk_generation_jobs_created_by_users"),
         ),
         sa.ForeignKeyConstraint(
             ["timetable_id"],
@@ -568,7 +612,10 @@ def upgrade():
     )
     op.create_index(op.f("ix_generation_jobs_status"), "generation_jobs", ["status"], unique=False)
     op.create_index(
-        op.f("ix_generation_jobs_timetable_id"), "generation_jobs", ["timetable_id"], unique=False
+        op.f("ix_generation_jobs_timetable_id"),
+        "generation_jobs",
+        ["timetable_id"],
+        unique=False,
     )
     op.create_table(
         "notifications",
@@ -623,7 +670,9 @@ def upgrade():
             name=op.f("fk_availability_group_id_student_groups"),
         ),
         sa.ForeignKeyConstraint(
-            ["lecturer_id"], ["lecturers.id"], name=op.f("fk_availability_lecturer_id_lecturers")
+            ["lecturer_id"],
+            ["lecturers.id"],
+            name=op.f("fk_availability_lecturer_id_lecturers"),
         ),
         sa.ForeignKeyConstraint(
             ["room_id"], ["rooms.id"], name=op.f("fk_availability_room_id_rooms")
@@ -634,15 +683,22 @@ def upgrade():
             name=op.f("fk_availability_section_id_course_sections"),
         ),
         sa.ForeignKeyConstraint(
-            ["slot_id"], ["time_slots.id"], name=op.f("fk_availability_slot_id_time_slots")
+            ["slot_id"],
+            ["time_slots.id"],
+            name=op.f("fk_availability_slot_id_time_slots"),
         ),
         sa.ForeignKeyConstraint(
-            ["term_id"], ["academic_terms.id"], name=op.f("fk_availability_term_id_academic_terms")
+            ["term_id"],
+            ["academic_terms.id"],
+            name=op.f("fk_availability_term_id_academic_terms"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_availability")),
     )
     op.create_index(
-        op.f("ix_availability_department_id"), "availability", ["department_id"], unique=False
+        op.f("ix_availability_department_id"),
+        "availability",
+        ["department_id"],
+        unique=False,
     )
     op.create_index(op.f("ix_availability_term_id"), "availability", ["term_id"], unique=False)
     op.create_table(
@@ -667,7 +723,9 @@ def upgrade():
         sa.Column("section_id", sa.Integer(), nullable=False),
         sa.Column("room_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["room_id"], ["rooms.id"], name=op.f("fk_course_preferred_rooms_room_id_rooms")
+            ["room_id"],
+            ["rooms.id"],
+            name=op.f("fk_course_preferred_rooms_room_id_rooms"),
         ),
         sa.ForeignKeyConstraint(
             ["section_id"],
@@ -748,7 +806,9 @@ def upgrade():
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_timetable_versions")),
         sa.UniqueConstraint(
-            "timetable_id", "version_number", name=op.f("uq_timetable_versions_timetable_id")
+            "timetable_id",
+            "version_number",
+            name=op.f("uq_timetable_versions_timetable_id"),
         ),
     )
     op.create_index(
@@ -831,7 +891,10 @@ def upgrade():
         sa.UniqueConstraint("version_id", name=op.f("uq_generation_results_version_id")),
     )
     op.create_index(
-        op.f("ix_generation_results_job_id"), "generation_results", ["job_id"], unique=False
+        op.f("ix_generation_results_job_id"),
+        "generation_results",
+        ["job_id"],
+        unique=False,
     )
     op.create_table(
         "schedule_approvals",
@@ -844,7 +907,9 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["actor_id"], ["users.id"], name=op.f("fk_schedule_approvals_actor_id_users")
+            ["actor_id"],
+            ["users.id"],
+            name=op.f("fk_schedule_approvals_actor_id_users"),
         ),
         sa.ForeignKeyConstraint(
             ["timetable_id"],
@@ -907,10 +972,16 @@ def upgrade():
         ),
     )
     op.create_index(
-        op.f("ix_scheduled_sessions_version_id"), "scheduled_sessions", ["version_id"], unique=False
+        op.f("ix_scheduled_sessions_version_id"),
+        "scheduled_sessions",
+        ["version_id"],
+        unique=False,
     )
     op.create_index(
-        "ix_session_calendar", "scheduled_sessions", ["version_id", "day", "start"], unique=False
+        "ix_session_calendar",
+        "scheduled_sessions",
+        ["version_id", "day", "start"],
+        unique=False,
     )
     op.create_table(
         "session_rooms",
@@ -938,14 +1009,35 @@ def upgrade():
             ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
-            ["slot_id"], ["time_slots.id"], name=op.f("fk_session_time_slots_slot_id_time_slots")
+            ["slot_id"],
+            ["time_slots.id"],
+            name=op.f("fk_session_time_slots_slot_id_time_slots"),
         ),
         sa.PrimaryKeyConstraint("session_id", "slot_id", name=op.f("pk_session_time_slots")),
     )
+    # PostgreSQL needs circular version references after both tables exist.
+    if op.get_bind().dialect.name == "postgresql":
+        op.create_foreign_key(
+            "fk_current_version",
+            "timetables",
+            "timetable_versions",
+            ["current_version_id"],
+            ["id"],
+        )
+        op.create_foreign_key(
+            "fk_published_version",
+            "timetables",
+            "timetable_versions",
+            ["published_version_id"],
+            ["id"],
+        )
     # ### end Alembic commands ###
 
 
 def downgrade():
+    if op.get_bind().dialect.name == "postgresql":
+        op.drop_constraint("fk_current_version", "timetables", type_="foreignkey")
+        op.drop_constraint("fk_published_version", "timetables", type_="foreignkey")
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table("session_time_slots")
     op.drop_table("session_rooms")
@@ -986,7 +1078,8 @@ def downgrade():
     op.drop_table("lecturers")
     op.drop_table("import_jobs")
     op.drop_index(
-        op.f("ix_constraint_definitions_department_id"), table_name="constraint_definitions"
+        op.f("ix_constraint_definitions_department_id"),
+        table_name="constraint_definitions",
     )
     op.drop_table("constraint_definitions")
     op.drop_index(op.f("ix_auth_sessions_user_id"), table_name="auth_sessions")

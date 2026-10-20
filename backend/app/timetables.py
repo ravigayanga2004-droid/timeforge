@@ -49,16 +49,18 @@ def listing(
         query = query.where(m.Timetable.department_id == user.department_id)
     if user.role not in MANAGERS:
         query = query.where(
-            m.Timetable.published_version_id.is_not(None), m.Timetable.status != "ARCHIVED"
+            m.Timetable.published_version_id.is_not(None),
+            m.Timetable.status != "ARCHIVED",
         )
     total = db.scalar(select(func.count()).select_from(query.subquery()))
-    return {
-        "items": [
-            serialize(t)
-            for t in db.scalars(query.order_by(m.Timetable.id.desc()).offset(offset).limit(limit))
-        ],
-        "total": total,
-    }
+    items = []
+    for t in db.scalars(query.order_by(m.Timetable.id.desc()).offset(offset).limit(limit)):
+        item = serialize(t)
+        if user.role not in MANAGERS:
+            item["current_version_id"] = t.published_version_id
+            item["status"] = "PUBLISHED"
+        items.append(item)
+    return {"items": items, "total": total}
 
 
 @router.post("/timetables", status_code=201)
@@ -79,7 +81,11 @@ def create(
 
 
 @router.get("/timetables/{timetable_id}")
-def detail(timetable_id: int, user: m.User = Depends(require_auth), db: Session = Depends(get_db)):
+def detail(
+    timetable_id: int,
+    user: m.User = Depends(require_auth),
+    db: Session = Depends(get_db),
+):
     t = timetable_access(db, timetable_id, user)
     result = serialize(t)
     versions = select(m.TimetableVersion).where(m.TimetableVersion.timetable_id == t.id)
@@ -113,6 +119,8 @@ def detail(timetable_id: int, user: m.User = Depends(require_auth), db: Session 
     ]
     if user.role not in MANAGERS:
         result["current_version_id"] = t.published_version_id
+        result["status"] = "PUBLISHED"
+        result["approvals"] = []
     return result
 
 
@@ -163,7 +171,9 @@ def start(
 
 @router.get("/jobs/{job_id}")
 def job_detail(
-    job_id: int, user: m.User = Depends(require_permission("manage")), db: Session = Depends(get_db)
+    job_id: int,
+    user: m.User = Depends(require_permission("manage")),
+    db: Session = Depends(get_db),
 ):
     job = db.get(m.GenerationJob, job_id)
     if not job:
@@ -174,7 +184,9 @@ def job_detail(
 
 @router.post("/jobs/{job_id}/cancel")
 def cancel(
-    job_id: int, user: m.User = Depends(require_permission("manage")), db: Session = Depends(get_db)
+    job_id: int,
+    user: m.User = Depends(require_permission("manage")),
+    db: Session = Depends(get_db),
 ):
     job = db.get(m.GenerationJob, job_id)
     if not job:
@@ -206,7 +218,13 @@ def retry(
         t.status = "GENERATED" if t.current_version_id else "DRAFT"
     if job.status not in {"FAILED", "CANCELLED"}:
         raise HTTPException(409, "Only failed, cancelled, or stale jobs can be retried")
-    return start(job.timetable_id, GenerationIn.model_validate(job.configuration), tasks, user, db)
+    return start(
+        job.timetable_id,
+        GenerationIn.model_validate(job.configuration),
+        tasks,
+        user,
+        db,
+    )
 
 
 @router.get("/versions/{version_id}")
@@ -262,7 +280,10 @@ def preview(
     if base.timetable_id != timetable.id:
         raise HTTPException(422, "Base version belongs to another timetable")
     p = load_problem(
-        db, timetable, base.configuration, [a for a in assignments(db, base.id) if a.is_locked]
+        db,
+        timetable,
+        base.configuration,
+        [a for a in assignments(db, base.id) if a.is_locked],
     )
     violations = validate_solution(p, data.sessions) + score_solution(p, data.sessions)
     # Return actual compatible placements for affected sessions, bounded for interactive use.
@@ -319,8 +340,16 @@ def edit(
     if not base:
         raise HTTPException(404, "Base version not found")
     p = load_problem(
-        db, timetable, base.configuration, [a for a in assignments(db, base.id) if a.is_locked]
+        db,
+        timetable,
+        base.configuration,
+        [a for a in assignments(db, base.id) if a.is_locked],
     )
+    if any(v.code == "HC017" for v in validate_solution(p, data.sessions)):
+        raise HTTPException(
+            422,
+            "A locked session cannot be moved or removed. Save an unlocked version first.",
+        )
     version = persist_version(
         db,
         timetable,
@@ -344,7 +373,11 @@ def edit(
             ],
         },
     )
-    notify(db, timetable, f"Schedule changed: {timetable.name}, version {version.version_number}.")
+    notify(
+        db,
+        timetable,
+        f"Schedule changed: {timetable.name}, version {version.version_number}.",
+    )
     return serialize(version)
 
 
@@ -359,6 +392,11 @@ def select_version(
     if timetable.status in {"GENERATING", "UNDER_REVIEW", "APPROVED", "ARCHIVED"}:
         raise HTTPException(409, "Selecting versions is unavailable in this workflow state")
     _, version = version_access(db, data.version_id, user, True)
+    if version.status == "REJECTED":
+        raise HTTPException(
+            409,
+            "A rejected alternative cannot be activated; duplicate the timetable to revise it",
+        )
     if version.timetable_id != timetable.id:
         raise HTTPException(422, "Version belongs to another timetable")
     timetable.current_version_id, timetable.status = version.id, "GENERATED"
@@ -402,7 +440,11 @@ def compare(
     return {
         "versions": [serialize(v) for v in versions],
         "differences": [
-            {"a": a.id, "b": b.id, "changed_sessions": len(fingerprints[a.id] - fingerprints[b.id])}
+            {
+                "a": a.id,
+                "b": b.id,
+                "changed_sessions": len(fingerprints[a.id] - fingerprints[b.id]),
+            }
             for i, a in enumerate(versions)
             for b in versions[i + 1 :]
         ],
@@ -416,3 +458,52 @@ def analytics(version_id: int, user: m.User = Depends(require_auth), db: Session
     sessions = personal_filter(db, assignments(db, v.id), user)
     violations = score_solution(p, sessions)
     return metrics(p, sessions, violations)
+
+
+@router.post("/timetables/{timetable_id}/duplicate", status_code=201)
+def duplicate(
+    timetable_id: int,
+    user: m.User = Depends(require_permission("manage")),
+    db: Session = Depends(get_db),
+):
+    original = timetable_access(db, timetable_id, user, True)
+    clone = m.Timetable(
+        name=original.name[:145] + " · Copy",
+        department_id=original.department_id,
+        term_id=original.term_id,
+        created_by=user.id,
+    )
+    db.add(clone)
+    db.flush()
+    if original.current_version_id:
+        base = db.get(m.TimetableVersion, original.current_version_id)
+        if base:
+            p = load_problem(db, clone, base.configuration)
+            version = persist_version(
+                db,
+                clone,
+                assignments(db, base.id),
+                p,
+                base.configuration,
+                allow_conflicts=True,
+            )
+            clone.current_version_id, clone.status = version.id, version.status
+    create_audit_log(db, user, "duplicate", "timetable", clone.id, {"source": original.id})
+    return serialize(clone)
+
+
+@router.post("/versions/{version_id}/reject")
+def reject_alternative(
+    version_id: int,
+    data: DecisionIn,
+    user: m.User = Depends(require_permission("manage")),
+    db: Session = Depends(get_db),
+):
+    timetable, version = version_access(db, version_id, user, True)
+    if version.id in {timetable.current_version_id, timetable.published_version_id}:
+        raise HTTPException(409, "Select another active alternative before rejecting this version")
+    if data.action != "reject" or not data.notes.strip():
+        raise HTTPException(422, "Rejection requires notes")
+    version.status = "REJECTED"
+    create_audit_log(db, user, "reject_alternative", "version", version.id, {"notes": data.notes})
+    return serialize(version)

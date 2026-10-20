@@ -10,7 +10,9 @@ def test_csv_preview_is_rolled_back_and_import_is_atomic(login):
     good = b"name,code,description\nAstronomy,ASTRO,Science\n"
     path = "/api/imports/departments"
     preview = c.post(
-        path, files={"file": ("departments.csv", good, "text/csv")}, data={"dry_run": "true"}
+        path,
+        files={"file": ("departments.csv", good, "text/csv")},
+        data={"dry_run": "true"},
     )
     assert preview.status_code == 200, preview.text
     assert preview.json()["status"] == "PREVIEW"
@@ -30,7 +32,8 @@ def test_malformed_and_oversize_csv_are_rejected(login):
     assert c.post("/api/imports/departments", files={"file": ("evil.exe", b"x")}).status_code == 422
     assert (
         c.post(
-            "/api/imports/departments", files={"file": ("bad.csv", b"wrong,headers\nx,y")}
+            "/api/imports/departments",
+            files={"file": ("bad.csv", b"wrong,headers\nx,y")},
         ).status_code
         == 422
     )
@@ -57,7 +60,13 @@ def test_ics_is_stable_folded_and_term_bounded():
     term = SimpleNamespace(name="Autumn", start_date=date(2026, 10, 20), end_date=date(2026, 11, 2))
     sessions = [
         Assignment(
-            section_id=1, session_number=1, day=0, start=540, end=600, room_id=1, lecturer_id=1
+            section_id=1,
+            session_number=1,
+            day=0,
+            start=540,
+            end=600,
+            room_id=1,
+            lecturer_id=1,
         )
     ]
     labels = {

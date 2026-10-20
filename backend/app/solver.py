@@ -159,23 +159,33 @@ class Scheduler:
                 self.model.add(sum(terms) <= self.p.lecturers[owner].max_weekly_hours * 60)
         for section in self.p.sections.values():
             keys = [(section.id, n) for n in range(1, section.sessions_per_week + 1)]
+            locked_numbers = {a.session_number for a in self.p.locks if a.section_id == section.id}
             for ka, kb in combinations(keys, 2):
                 sa, sb = self.selected[ka], self.selected[kb]
                 # Canonical ordering prevents alternatives differing only by session labels.
-                self.model.add(sa["ordinal"] < sb["ordinal"])
+                # Manual version labels may no longer be chronological; locked
+                # identifiers take precedence over symmetry breaking.
+                if ka[1] not in locked_numbers and kb[1] not in locked_numbers:
+                    self.model.add(sa["ordinal"] < sb["ordinal"])
                 if section.min_day_spacing:
-                    self.model.add(sb["day"] - sa["day"] >= section.min_day_spacing)
+                    distance = self.model.new_int_var(0, 6, f"distance{ka}{kb}")
+                    self.model.add_abs_equality(distance, sb["day"] - sa["day"])
+                    self.model.add(distance >= section.min_day_spacing)
                 if section.no_back_to_back:
                     same = self.model.new_bool_var(f"same_day{ka}{kb}")
                     self.model.add(sa["day"] == sb["day"]).only_enforce_if(same)
                     self.model.add(sa["day"] != sb["day"]).only_enforce_if(same.Not())
                     self.model.add(sb["start"] != sa["end"]).only_enforce_if(same)
+                    self.model.add(sa["start"] != sb["end"]).only_enforce_if(same)
 
     def add_soft_constraints(self):
         for session_key, candidates in self.candidates.items():
             for a, x in zip(candidates, self.variables[session_key], strict=True):
                 self.objective.append(sum(v for _, v, _ in candidate_penalties(self.p, a)) * x)
-        for entity, owners in [("lecturer", self.p.lecturers), ("group", self.p.groups)]:
+        for entity, owners in [
+            ("lecturer", self.p.lecturers),
+            ("group", self.p.groups),
+        ]:
             for owner in owners:
                 keys = [
                     k
@@ -224,7 +234,10 @@ class Scheduler:
                     self.objective.append(self.p.weights["compact"] * idle)
         for ka, kb in combinations(self.selected, 2):
             if ka[0] == kb[0]:
-                for field, code in [("room_id", "room_changes"), ("start", "consistent_time")]:
+                for field, code in [
+                    ("room_id", "room_changes"),
+                    ("start", "consistent_time"),
+                ]:
                     different = self.model.new_bool_var(f"different{ka}{kb}{field}")
                     self.model.add(
                         self.selected[ka][field] != self.selected[kb][field]
@@ -271,8 +284,9 @@ class Scheduler:
             if remaining <= 0:
                 break
             solver = cp_model.CpSolver()
-            # Finding a first feasible schedule takes priority over returning more options.
-            solver.parameters.max_time_in_seconds = max(0.1, remaining)
+            solver.parameters.max_time_in_seconds = max(
+                0.1, remaining / (self.config.alternatives - index)
+            )
             solver.parameters.random_seed = self.config.random_seed
             solver.parameters.num_search_workers = 1  # Deterministic given input and seed.
             done = threading.Event()
@@ -287,6 +301,17 @@ class Scheduler:
             watcher.start()
             try:
                 status = solver.solve(self.model)
+                if status == cp_model.UNKNOWN and not results:
+                    # Recover feasibility before spending the rest of the budget
+                    # proving an optimization bound on a difficult first model.
+                    remaining = self.config.time_limit - (time.monotonic() - started)
+                    if remaining > 0.1 and not cancelled():
+                        self.model.clear_objective()
+                        solver.parameters.max_time_in_seconds = remaining
+                        solver.parameters.stop_after_first_solution = True
+                        status = solver.solve(self.model)
+                        if self.config.optimize:
+                            self.model.minimize(sum(self.objective))
             finally:
                 done.set()
                 watcher.join(timeout=2)
@@ -322,6 +347,7 @@ class Scheduler:
                 break
             self.model.add(sum(chosen) <= len(chosen) - max(1, ceil(movable * 0.1)))
             progress(
-                "Alternative generation", 35 + int(45 * (index + 1) / self.config.alternatives)
+                "Alternative generation",
+                35 + int(45 * (index + 1) / self.config.alternatives),
             )
         return results

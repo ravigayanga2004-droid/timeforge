@@ -25,7 +25,13 @@ def seed(db, password: str):
             else ["manage"] if role.name == "coordinator" else ["view_published"]
         ):
             db.add(m.Permission(role_id=role.id, code=code))
+    university = m.University(
+        name="TimeForge Demonstration University", code="TFU", timezone="Asia/Colombo"
+    )
+    db.add(university)
+    db.flush()
     department = m.Department(
+        university_id=university.id,
         name="School of Computing",
         code="SOC",
         description="Demonstration academic department",
@@ -124,7 +130,10 @@ def seed(db, password: str):
     for day in range(5):
         for period in range(8):
             slot = m.TimeSlot(
-                day=day, start=(8 + period) * 60, end=(9 + period) * 60, period=period + 1
+                day=day,
+                start=(8 + period) * 60,
+                end=(9 + period) * 60,
+                period=period + 1,
             )
             db.add(slot)
             slots.append(slot)
@@ -143,7 +152,10 @@ def seed(db, password: str):
         ]
     ):
         course = m.Course(
-            name=name, code=f"CS{index//3+1}{index%3+1}01", department_id=department.id, credits=3
+            name=name,
+            code=f"CS{index//3+1}{index%3+1}01",
+            department_id=department.id,
+            credits=3,
         )
         db.add(course)
         db.flush()

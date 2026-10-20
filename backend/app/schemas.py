@@ -1,5 +1,6 @@
 from datetime import date
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
@@ -15,11 +16,28 @@ class Input(BaseModel):
 
 
 class DepartmentIn(Input):
+    university_id: Id | None = None
     name: Name
     code: Code
     description: str = Field(default="", max_length=2000)
     head: str = Field(default="", max_length=160)
     is_active: bool = True
+
+
+class UniversityIn(Input):
+    name: Name
+    code: Code
+    address: str = Field(default="", max_length=500)
+    timezone: str = Field(default="Asia/Colombo", max_length=80)
+    is_active: bool = True
+
+    @model_validator(mode="after")
+    def valid_timezone(self):
+        try:
+            ZoneInfo(self.timezone)
+        except (ValueError, ZoneInfoNotFoundError) as exc:
+            raise ValueError("Choose a valid IANA timezone such as Asia/Colombo") from exc
+        return self
 
 
 class YearIn(Input):
@@ -145,7 +163,12 @@ class AvailabilityIn(Input):
         if (
             sum(
                 x is not None
-                for x in [self.lecturer_id, self.room_id, self.group_id, self.section_id]
+                for x in [
+                    self.lecturer_id,
+                    self.room_id,
+                    self.group_id,
+                    self.section_id,
+                ]
             )
             != 1
         ):
