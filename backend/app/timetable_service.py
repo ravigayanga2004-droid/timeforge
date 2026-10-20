@@ -211,6 +211,28 @@ def transition(db, timetable, user, action, notes):
             raise HTTPException(
                 422, "Publication notes are required when soft constraints are violated"
             )
+        if action == "publish":
+            # Serialize publications for a department/term and prevent two active
+            # snapshots from representing the same academic week.
+            db.scalar(
+                select(m.AcademicTerm)
+                .where(m.AcademicTerm.id == timetable.term_id)
+                .with_for_update()
+            )
+            existing = db.scalar(
+                select(m.Timetable).where(
+                    m.Timetable.id != timetable.id,
+                    m.Timetable.department_id == timetable.department_id,
+                    m.Timetable.term_id == timetable.term_id,
+                    m.Timetable.published_version_id.is_not(None),
+                    m.Timetable.status != "ARCHIVED",
+                )
+            )
+            if existing:
+                raise HTTPException(
+                    409,
+                    "Archive the previously published timetable for this department and term before publishing another.",
+                )
     states = {
         "submit": "UNDER_REVIEW",
         "approve": "APPROVED",

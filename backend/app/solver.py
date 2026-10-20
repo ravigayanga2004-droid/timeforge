@@ -271,8 +271,9 @@ class Scheduler:
             if remaining <= 0:
                 break
             solver = cp_model.CpSolver()
-            # Finding a first feasible schedule takes priority over returning more options.
-            solver.parameters.max_time_in_seconds = max(0.1, remaining)
+            solver.parameters.max_time_in_seconds = max(
+                0.1, remaining / (self.config.alternatives - index)
+            )
             solver.parameters.random_seed = self.config.random_seed
             solver.parameters.num_search_workers = 1  # Deterministic given input and seed.
             done = threading.Event()
@@ -287,6 +288,17 @@ class Scheduler:
             watcher.start()
             try:
                 status = solver.solve(self.model)
+                if status == cp_model.UNKNOWN and not results:
+                    # Recover feasibility before spending the rest of the budget
+                    # proving an optimization bound on a difficult first model.
+                    remaining = self.config.time_limit - (time.monotonic() - started)
+                    if remaining > 0.1 and not cancelled():
+                        self.model.clear_objective()
+                        solver.parameters.max_time_in_seconds = remaining
+                        solver.parameters.stop_after_first_solution = True
+                        status = solver.solve(self.model)
+                        if self.config.optimize:
+                            self.model.minimize(sum(self.objective))
             finally:
                 done.set()
                 watcher.join(timeout=2)
