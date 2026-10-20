@@ -52,8 +52,9 @@ def fold_line(line):
     return "\r\n".join(result)
 
 
-def calendar_bytes(timetable, version, term, sessions, labels):
-    zone = ZoneInfo(settings().timezone)
+def calendar_bytes(timetable, version, term, sessions, labels, timezone_name=None):
+    timezone_name = timezone_name or settings().timezone
+    zone = ZoneInfo(timezone_name)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     lines = [
         "BEGIN:VCALENDAR",
@@ -62,7 +63,7 @@ def calendar_bytes(timetable, version, term, sessions, labels):
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
         f"X-WR-CALNAME:{ics_escape(timetable.name)}",
-        f"X-WR-TIMEZONE:{ics_escape(settings().timezone)}",
+        f"X-WR-TIMEZONE:{ics_escape(timezone_name)}",
         f"X-TIMEFORGE-TERM:{ics_escape(term.name)}",
         f"X-TIMEFORGE-VERSION:{version.version_number}",
     ]
@@ -90,7 +91,7 @@ def calendar_bytes(timetable, version, term, sessions, labels):
             f"DTEND:{end}",
             f"SUMMARY:{ics_escape(label['course'])}",
             f"LOCATION:{ics_escape(label['rooms'][a.room_id])}",
-            f"DESCRIPTION:{ics_escape(term.name+' · version '+str(version.version_number)+' · '+label['lecturer']+' · '+label['groups']+' · '+settings().timezone)}",
+            f"DESCRIPTION:{ics_escape(term.name+' · version '+str(version.version_number)+' · '+label['lecturer']+' · '+label['groups']+' · '+timezone_name)}",
         ]
         if len(starts) > 1:
             lines.append("RDATE:" + ",".join(starts[1:]))
@@ -99,7 +100,8 @@ def calendar_bytes(timetable, version, term, sessions, labels):
     return ("\r\n".join(fold_line(line) for line in lines) + "\r\n").encode()
 
 
-def pdf_bytes(title, subtitle, headers, rows):
+def pdf_bytes(title, subtitle, headers, rows, timezone_name=None):
+    timezone_name = timezone_name or settings().timezone
     output = io.BytesIO()
     style = getSampleStyleSheet()
     style["BodyText"].fontSize = 8
@@ -135,7 +137,7 @@ def pdf_bytes(title, subtitle, headers, rows):
 
     def footer(canvas, document):
         canvas.setFont("Helvetica", 8)
-        canvas.drawString(28, 16, f"TimeForge | {settings().timezone} | Page {document.page}")
+        canvas.drawString(28, 16, f"TimeForge | {timezone_name} | Page {document.page}")
 
     doc.build(elements, onFirstPage=footer, onLaterPages=footer)
     return output.getvalue()
@@ -153,6 +155,13 @@ def export(
     db: Session = Depends(get_db),
 ):
     timetable, version = version_access(db, version_id, user)
+    department = db.get(m.Department, timetable.department_id)
+    university = (
+        db.get(m.University, department.university_id)
+        if department and department.university_id
+        else None
+    )
+    timezone_name = university.timezone if university else settings().timezone
     if format not in {"csv", "ics", "pdf"} or report not in {"schedule", "conflicts", "generation"}:
         raise HTTPException(422, "Choose PDF, CSV or ICS and a supported report")
     if report != "schedule" and user.role not in MANAGERS:
@@ -192,7 +201,7 @@ def export(
             "groups": groups,
             "rooms": rooms,
         }
-    subtitle = f"{term.name} | {term.start_date} to {term.end_date} | Version {version.version_number} | {settings().timezone} | Exported {datetime.now(ZoneInfo(settings().timezone)).isoformat(timespec='seconds')}"
+    subtitle = f"{term.name} | {term.start_date} to {term.end_date} | Version {version.version_number} | {timezone_name} | Exported {datetime.now(ZoneInfo(timezone_name)).isoformat(timespec='seconds')}"
     if report == "conflicts":
         headers = ["Code", "Severity", "Explanation", "Penalty", "Suggested resolution"]
         rows = [
@@ -225,10 +234,13 @@ def export(
     if format == "ics":
         if report != "schedule":
             raise HTTPException(422, "ICS is available for schedules only")
-        content = calendar_bytes(timetable, version, term, sessions, labels)
+        content = calendar_bytes(timetable, version, term, sessions, labels, timezone_name)
         media = "text/calendar"
     elif format == "pdf":
-        content, media = pdf_bytes(timetable.name, subtitle, headers, rows), "application/pdf"
+        content, media = (
+            pdf_bytes(timetable.name, subtitle, headers, rows, timezone_name),
+            "application/pdf",
+        )
     else:
         content, media = (
             csv_bytes(
@@ -237,7 +249,7 @@ def export(
                     [
                         term.name,
                         version.version_number,
-                        settings().timezone,
+                        timezone_name,
                         datetime.now(UTC).isoformat(),
                     ]
                     + row

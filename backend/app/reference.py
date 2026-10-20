@@ -13,6 +13,7 @@ from app.db import get_db
 from app.security import MANAGERS, create_audit_log, require_auth, require_department_access
 
 REGISTRY: dict[str, tuple[Any, Any]] = {
+    "universities": (m.University, s.UniversityIn),
     "departments": (m.Department, s.DepartmentIn),
     "academic-years": (m.AcademicYear, s.YearIn),
     "terms": (m.AcademicTerm, s.TermIn),
@@ -27,7 +28,14 @@ REGISTRY: dict[str, tuple[Any, Any]] = {
     "availability": (m.Availability, s.AvailabilityIn),
     "constraints": (m.ConstraintDefinition, s.ConstraintIn),
 }
-GLOBAL = {"departments", "academic-years", "buildings", "room-features", "time-slots"}
+GLOBAL = {
+    "universities",
+    "departments",
+    "academic-years",
+    "buildings",
+    "room-features",
+    "time-slots",
+}
 ADMIN_WRITE = GLOBAL | {"rooms", "terms"}
 router = APIRouter(prefix="/api/data", tags=["Academic data"])
 

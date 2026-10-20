@@ -25,7 +25,13 @@ def seed(db, password: str):
             else ["manage"] if role.name == "coordinator" else ["view_published"]
         ):
             db.add(m.Permission(role_id=role.id, code=code))
+    university = m.University(
+        name="TimeForge Demonstration University", code="TFU", timezone="Asia/Colombo"
+    )
+    db.add(university)
+    db.flush()
     department = m.Department(
+        university_id=university.id,
         name="School of Computing",
         code="SOC",
         description="Demonstration academic department",

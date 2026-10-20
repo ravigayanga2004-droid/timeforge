@@ -23,8 +23,18 @@ from app.db import Base, Record
 J = JSON().with_variant(JSONB, "postgresql")
 
 
+class University(Record, Base):
+    __tablename__ = "universities"
+    name: Mapped[str] = mapped_column(String(160))
+    code: Mapped[str] = mapped_column(String(30), unique=True)
+    address: Mapped[str] = mapped_column(String(500), default="")
+    timezone: Mapped[str] = mapped_column(String(80), default="Asia/Colombo")
+    is_active: Mapped[bool] = mapped_column(default=True)
+
+
 class Department(Record, Base):
     __tablename__ = "departments"
+    university_id: Mapped[int | None] = mapped_column(ForeignKey("universities.id"), index=True)
     name: Mapped[str] = mapped_column(String(160))
     code: Mapped[str] = mapped_column(String(30), unique=True)
     description: Mapped[str] = mapped_column(Text, default="")
