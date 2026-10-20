@@ -149,7 +149,8 @@ class TimeSlot(Record, Base):
     __table_args__ = (
         UniqueConstraint("day", "start", "end"),
         CheckConstraint(
-            "day >= 0 AND day <= 6 AND start >= 0 AND end <= 1440 AND end > start", name="interval"
+            "day >= 0 AND day <= 6 AND start >= 0 AND end <= 1440 AND end > start",
+            name="interval",
         ),
     )
 

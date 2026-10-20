@@ -9,7 +9,15 @@ from sqlalchemy.orm.exc import StaleDataError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app import administration, auth, availability, exports, imports, reference, timetables
+from app import (
+    administration,
+    auth,
+    availability,
+    exports,
+    imports,
+    reference,
+    timetables,
+)
 from app.config import settings
 from app.db import SessionLocal
 
@@ -73,7 +81,8 @@ async def integrity_error(request: Request, exc: IntegrityError):
 @app.exception_handler(StaleDataError)
 async def stale_error(request: Request, exc: StaleDataError):
     return JSONResponse(
-        {"detail": "This record changed in another session. Reload and retry."}, status_code=409
+        {"detail": "This record changed in another session. Reload and retry."},
+        status_code=409,
     )
 
 
@@ -81,7 +90,8 @@ async def stale_error(request: Request, exc: StaleDataError):
 async def database_error(request: Request, exc: SQLAlchemyError):
     logging.getLogger("timeforge").error("Database operation failed: %s", type(exc).__name__)
     return JSONResponse(
-        {"detail": "The data service is unavailable. Please retry later."}, status_code=503
+        {"detail": "The data service is unavailable. Please retry later."},
+        status_code=503,
     )
 
 

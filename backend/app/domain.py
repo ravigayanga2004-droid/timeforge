@@ -209,7 +209,11 @@ def validate_solution(p: Problem, sessions: list[Assignment], check_counts=True)
         section = p.sections.get(a.section_id)
         room = p.rooms.get(a.room_id)
         if not section:
-            fail("HC011", "This session references a section outside the generation scope.", [a])
+            fail(
+                "HC011",
+                "This session references a section outside the generation scope.",
+                [a],
+            )
             continue
         if not room:
             fail("HC015", "This session has no permitted room.", [a])
@@ -220,9 +224,17 @@ def validate_solution(p: Problem, sessions: list[Assignment], check_counts=True)
                 p.groups[g].size for g in p.enrollment.get(section.id, set()) if g in p.groups
             )
             if room.capacity < max(section.expected_enrollment, enrollment_size):
-                fail("HC005", "This room is too small for the selected student groups.", [a])
+                fail(
+                    "HC005",
+                    "This room is too small for the selected student groups.",
+                    [a],
+                )
             if room.room_type != section.required_room_type:
-                fail("HC006", "This room does not support the required session type.", [a])
+                fail(
+                    "HC006",
+                    "This room does not support the required session type.",
+                    [a],
+                )
             if not set(section.required_features) <= p.features.get(room.id, set()):
                 fail("HC007", "This room lacks required equipment.", [a])
         if a.lecturer_id not in p.lecturers or a.lecturer_id != section.lecturer_id:
@@ -240,18 +252,26 @@ def validate_solution(p: Problem, sessions: list[Assignment], check_counts=True)
             or section.term_id != p.term.id
             or (section.fixed_day is not None and section.fixed_day != a.day)
         ):
-            fail("HC016", "The day is outside the term or violates the required weekday.", [a])
+            fail(
+                "HC016",
+                "The day is outside the term or violates the required weekday.",
+                [a],
+            )
         if a.session_number > section.sessions_per_week:
             fail("HC011", "Session number exceeds the weekly requirement.", [a])
         if counts[(a.section_id, a.session_number)] > 1:
-            fail("HC018", "Duplicate assignment for this section and session number.", [a])
+            fail(
+                "HC018",
+                "Duplicate assignment for this section and session number.",
+                [a],
+            )
         for rule in p.availability:
             slot = p.slots.get(rule.slot_id)
             if slot and rule.kind == "unavailable" and relevant(p, rule, a) and overlap(a, slot):
                 code = (
                     "HC008"
                     if rule.lecturer_id
-                    else "HC009" if rule.group_id else "HC010" if rule.room_id else "HC020"
+                    else ("HC009" if rule.group_id else "HC010" if rule.room_id else "HC020")
                 )
                 fail(
                     code,
@@ -261,7 +281,11 @@ def validate_solution(p: Problem, sessions: list[Assignment], check_counts=True)
     for a, b in combinations(sessions, 2):
         if overlap(a, b):
             if a.lecturer_id == b.lecturer_id:
-                fail("HC001", "This lecturer is already teaching another session.", [a, b])
+                fail(
+                    "HC001",
+                    "This lecturer is already teaching another session.",
+                    [a, b],
+                )
             if a.room_id == b.room_id:
                 fail("HC002", "This room is already occupied by another session.", [a, b])
             if p.enrollment.get(a.section_id, set()) & p.enrollment.get(b.section_id, set()):
@@ -282,7 +306,11 @@ def validate_solution(p: Problem, sessions: list[Assignment], check_counts=True)
         for section in p.sections.values():
             for number in range(1, section.sessions_per_week + 1):
                 if counts[(section.id, number)] == 0:
-                    fail("HC011", f"Section {section.code} is missing weekly session {number}.", [])
+                    fail(
+                        "HC011",
+                        f"Section {section.code} is missing weekly session {number}.",
+                        [],
+                    )
     for locked in p.locks:
         found = next((x for x in sessions if key(x) == key(locked)), None)
         if not found or any(

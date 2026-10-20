@@ -7,7 +7,12 @@ from app.auth import public_user
 from app.db import get_db
 from app.reference import serialize
 from app.schemas import Input, UserIn, UserUpdate
-from app.security import create_audit_log, hash_password, require_auth, require_permission
+from app.security import (
+    create_audit_log,
+    hash_password,
+    require_auth,
+    require_permission,
+)
 
 router = APIRouter(prefix="/api", tags=["Administration"])
 
@@ -41,7 +46,9 @@ def validate_user(db, data):
 
 @router.post("/users", status_code=201)
 def create_user(
-    data: UserIn, user: m.User = Depends(require_permission("users")), db: Session = Depends(get_db)
+    data: UserIn,
+    user: m.User = Depends(require_permission("users")),
+    db: Session = Depends(get_db),
 ):
     validate_user(db, data)
     values = data.model_dump(exclude={"password"})
@@ -123,7 +130,9 @@ def notifications(
 
 @router.post("/notifications/{notification_id}/read")
 def mark_read(
-    notification_id: int, user: m.User = Depends(require_auth), db: Session = Depends(get_db)
+    notification_id: int,
+    user: m.User = Depends(require_auth),
+    db: Session = Depends(get_db),
 ):
     n = db.get(m.Notification, notification_id)
     if not n or n.user_id != user.id:

@@ -15,7 +15,12 @@ from app.models import AuditLog, AuthSession, User
 hasher = PasswordHasher()
 DUMMY_HASH = hasher.hash(secrets.token_urlsafe(32))
 MANAGERS = {"admin", "coordinator"}
-PERMISSIONS = {"manage": MANAGERS, "approve": {"admin"}, "users": {"admin"}, "audit": {"admin"}}
+PERMISSIONS = {
+    "manage": MANAGERS,
+    "approve": {"admin"},
+    "users": {"admin"},
+    "audit": {"admin"},
+}
 
 
 def hash_password(password: str) -> str:

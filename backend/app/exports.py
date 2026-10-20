@@ -8,7 +8,13 @@ from fastapi.responses import Response
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, Spacer, TableStyle
+from reportlab.platypus import (
+    LongTable,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    TableStyle,
+)
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -106,7 +112,12 @@ def pdf_bytes(title, subtitle, headers, rows, timezone_name=None):
     style = getSampleStyleSheet()
     style["BodyText"].fontSize = 8
     doc = SimpleDocTemplate(
-        output, pagesize=landscape(A4), rightMargin=28, leftMargin=28, topMargin=28, bottomMargin=30
+        output,
+        pagesize=landscape(A4),
+        rightMargin=28,
+        leftMargin=28,
+        topMargin=28,
+        bottomMargin=30,
     )
     elements = [
         Paragraph(escape(title), style["Title"]),
@@ -126,7 +137,12 @@ def pdf_bytes(title, subtitle, headers, rows, timezone_name=None):
             [
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#dcece6")),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f4f7f6")]),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [colors.white, colors.HexColor("#f4f7f6")],
+                ),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
                 ("TOPPADDING", (0, 0), (-1, -1), 8),
                 ("LINEBELOW", (0, 0), (-1, 0), 1, colors.HexColor("#164b45")),
@@ -162,7 +178,11 @@ def export(
         else None
     )
     timezone_name = university.timezone if university else settings().timezone
-    if format not in {"csv", "ics", "pdf"} or report not in {"schedule", "conflicts", "generation"}:
+    if format not in {"csv", "ics", "pdf"} or report not in {
+        "schedule",
+        "conflicts",
+        "generation",
+    }:
         raise HTTPException(422, "Choose PDF, CSV or ICS and a supported report")
     if report != "schedule" and user.role not in MANAGERS:
         raise HTTPException(403, "This report requires a coordinator role")

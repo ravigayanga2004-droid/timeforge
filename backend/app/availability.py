@@ -61,6 +61,11 @@ def bulk(data: BulkIn, user: m.User = Depends(require_auth), db: Session = Depen
                         f"Availability changed: {len(conflicts)} hard conflicts require review in {timetable.name}.",
                     )
     create_audit_log(
-        db, user, "availability_bulk", "availability", "batch", {"records": len(data.records)}
+        db,
+        user,
+        "availability_bulk",
+        "availability",
+        "batch",
+        {"records": len(data.records)},
     )
     return {"saved": len(data.records)}

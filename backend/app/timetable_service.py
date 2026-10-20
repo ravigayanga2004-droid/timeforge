@@ -150,7 +150,8 @@ def persist_version(
     # A draft can retain conflicts, but duplicate keys cannot be persisted as separate assignments.
     if len({(a.section_id, a.session_number) for a in sessions}) != len(sessions):
         raise HTTPException(
-            422, "Duplicate session identifiers cannot be saved; use a new session number"
+            422,
+            "Duplicate session identifiers cannot be saved; use a new session number",
         )
     for a in sessions:
         row = m.ScheduledSession(version_id=version.id, **a.model_dump())
@@ -257,7 +258,12 @@ def transition(db, timetable, user, action, notes):
         )
     )
     create_audit_log(
-        db, user, action, "timetable", timetable.id, {"version_id": version.id, "notes": notes}
+        db,
+        user,
+        action,
+        "timetable",
+        timetable.id,
+        {"version_id": version.id, "notes": notes},
     )
     notify(
         db,

@@ -163,7 +163,12 @@ class AvailabilityIn(Input):
         if (
             sum(
                 x is not None
-                for x in [self.lecturer_id, self.room_id, self.group_id, self.section_id]
+                for x in [
+                    self.lecturer_id,
+                    self.room_id,
+                    self.group_id,
+                    self.section_id,
+                ]
             )
             != 1
         ):

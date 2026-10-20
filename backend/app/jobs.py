@@ -46,7 +46,12 @@ def run_generation(job_id: int):
         )
         if not job or job.status != "QUEUED":
             return  # Re-delivery cannot create duplicate versions.
-        job.status, job.started_at, job.stage, job.progress = "RUNNING", utcnow(), "Validation", 5
+        job.status, job.started_at, job.stage, job.progress = (
+            "RUNNING",
+            utcnow(),
+            "Validation",
+            5,
+        )
         db.commit()
     try:
         with SessionLocal() as db:
@@ -91,7 +96,12 @@ def run_generation(job_id: int):
             versions = []
             for result in results:
                 version = persist_version(
-                    db, timetable, result["sessions"], problem, job.configuration, job_id=job_id
+                    db,
+                    timetable,
+                    result["sessions"],
+                    problem,
+                    job.configuration,
+                    job_id=job_id,
                 )
                 db.add(
                     m.GenerationResult(
@@ -136,7 +146,11 @@ def run_generation(job_id: int):
             )
             job.completed_at = utcnow()
             timetable.status = "GENERATED" if timetable.current_version_id else "DRAFT"
-            notify(db, timetable, f"{timetable.name}: {job.stage.lower()}. {job.error_message}")
+            notify(
+                db,
+                timetable,
+                f"{timetable.name}: {job.stage.lower()}. {job.error_message}",
+            )
             db.commit()
 
 
