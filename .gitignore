@@ -18,3 +18,4 @@ test-results/
 *.egg-info/
 .coverage
 htmlcov/
+*.tsbuildinfo
