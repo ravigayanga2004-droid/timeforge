@@ -48,3 +48,15 @@ behaviors and infrastructure limitations are recorded in final-verification.md.
 Document commands, counts, constraints, permission matrix, migration results,
 browser results and outstanding limitations in docs/final-verification.md. Never
 claim that a test or Docker run passed without executing it.
+
+## Phase outcomes
+
+Foundation, relational schema/migrations, authentication, academic CRUD,
+availability, constraint validation, CP-SAT solving, jobs, workflow, exchange,
+analytics and the responsive interface were integrated through feature branches.
+The release tree passed 61 backend and four frontend tests, formatting/lint/type
+checks, a production build, and disposable-browser development checks. Populated
+migration preservation and PDF visual checks passed. Production-asset browser QA
+is included in the release audit. Docker configuration validated; live engine
+verification remains unavailable. Scope differences and remaining production
+acceptance work are explicitly listed in final-verification.md.
