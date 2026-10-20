@@ -11,7 +11,10 @@ export default defineConfig({
             reuseExistingServer: false,
           },
           {
-            command: "npm run dev",
+            command:
+              process.env.E2E_PRODUCTION === "1"
+                ? "npm run preview -- --port 5173"
+                : "npm run dev",
             url: "http://localhost:5173",
             timeout: 30000,
             reuseExistingServer: false,
