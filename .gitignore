@@ -19,3 +19,4 @@ test-results/
 .coverage
 htmlcov/
 *.tsbuildinfo
+tmp/
